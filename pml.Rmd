@@ -1,0 +1,73 @@
+---
+title: "Quantified Self Movement Data Analysis"
+author: "Ivy Li"
+date: "Monday, June 15, 2015"
+output: html_document
+---
+# Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, we will  use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. The goal of this project is to predict the manner in which they did the exercise. 
+
+# Data Processing
+## Loading Data
+```{r,results='hide'}
+library(caret)
+library(randomForest)
+train=read.csv('pml-training.csv')
+test=read.csv('pml-testing.csv')
+dim(train)
+dim(test)
+head(train)
+head(test)
+```
+
+There are 19622 observations with 160 variables in the training data set, and 20 obervations with 160 variables in the testing data set.Lots of columns have incomplete data. Also, lots of variables are unrelated to the prediction outcome of 'classe'.
+Therefore we need to get rid of useless variables before building the model.
+
+## Cleaning Data
+
+```{r,results='hide'}
+train=train[,colSums(is.na(train))==0]
+test=test[,colSums(is.na(test))==0]
+Classe=train$classe
+train=train[,-grep('^X|timestamp|window',colnames(train))]
+train=train[, sapply(train, is.numeric)]
+train$Classe=Classe
+Classe=test$Classe
+test=test[,-grep('^X|timestamp|window',colnames(test))]
+test=test[, sapply(test, is.numeric)]
+test$Classe=Classe
+```
+
+The final data sets for train and test have 53 variables.
+Then we build the model for prediction.
+
+# Data Modeling
+We use random forest to build the model with cross validation.
+
+```{r}
+set.seed(1111)
+nTrain=createDataPartition(train$Classe,p=0.7,list=F)
+InTrain=train[nTrain,]
+InTest=train[-nTrain,]
+control=trainControl(method="cv",5)
+model=train(Classe ~ ., data=InTrain, method="rf", trControl=control, ntree=250)
+prediction=predict(model,InTest)
+confusionMatrix(prediction,InTest$Classe)
+```
+
+The model has 0.993 accuracy and 0.007 out of sample error.
+
+# Prediction for test data
+
+```{r}
+result=predict(model,test)
+result
+```
+
+
+
+
+
+
+
+
